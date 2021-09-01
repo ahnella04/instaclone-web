@@ -1,16 +1,19 @@
+import { gql, useMutation } from "@apollo/client";
 import { faFacebookSquare, faInstagram } from "@fortawesome/free-brands-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useForm } from "react-hook-form";
+import { useLocation } from "react-router-dom";
 import styled from "styled-components";
+import { logUserIn } from "../apollo";
 import AuthLayout from "../components/auth/AuthLayout";
 import BottomBox from "../components/auth/BottomBox";
 import Button from "../components/auth/Button";
 import FormBox from "../components/auth/FormBox";
+import FormError from "../components/auth/FormError";
 import Input from "../components/auth/Input";
 import Separator from "../components/auth/Separator";
 import PageTitle from "../components/PageTitle";
 import routes from "../routes";
-
 
 const FacebookLogin = styled.div`
     color: #385285;
@@ -20,19 +23,61 @@ const FacebookLogin = styled.div`
     }
 `;
 
+const Notification = styled.div`
+    color: #2ecc71;
+`;
+
+const LOGIN_MUTATION = gql`
+    mutation login($username: String!, $password: String!) {
+        login(username:$username, password:$password) {
+            ok
+            token
+            error
+        }
+    }
+`;
+
 const Login = () => {
-    const { register, handleSubmit, errors, formState } = useForm({
-        mode: "onChange"
+    const location = useLocation();
+    // console.log(location);
+    const { register, handleSubmit, errors, formState, getValues, setError, clearErrors } = useForm({
+        mode: "onChange",
+        defaultValues: {
+            username: location?.state?.username || "",
+            password: location?.state?.password || ""
+        }
     });
-    // console.log(watch());
+    const onCompleted = (data) => {
+        // console.log(data);
+        const { login: { ok, error, token } } = data;
+        if (!ok) {
+            return setError("result", {
+                message: error
+            })
+        }
+        if (token) {
+            // console.log(token);
+            logUserIn(token);
+        }
+    }
+    const [login, { loading }] = useMutation(LOGIN_MUTATION, {
+        onCompleted
+    });
     const onSubmitValid = (data) => {
-        // console.log(data); username password
+        if (loading) {
+            return;
+        }
+        const { username, password } = getValues();
+        login({
+            variables: {
+                username,
+                password
+            }
+        })
     }
-    const onSubmitInvalid = (data) => {
-        // console.log(data, "invalid");
+    const clearLoginError = () => {
+        clearErrors("result")
     }
-    // console.log(errors);
-    // console.log(formState.isValid);
     return (
         <AuthLayout>
             <PageTitle title="Login" />
@@ -40,20 +85,22 @@ const Login = () => {
                 <div>
                     <FontAwesomeIcon icon={faInstagram} size="3x" />
                 </div>
-                <form onSubmit={handleSubmit(onSubmitValid, onSubmitInvalid)}>
+                <Notification>{location?.state?.message}</Notification>
+                <form onSubmit={handleSubmit(onSubmitValid)}>
                     <Input ref={register({
                         required: "Username is required.",
                         minLength: {
-                            value: 5,
+                            value: 4,
                             message: "Username should be longer than 5 chars."
                         },
-                        validate: (currentValue) => currentValue.includes("potato")
-                    })} name="username" type="text" placeholder="Username" />
+                    })} onChange={clearLoginError} name="username" type="text" placeholder="Username" hasError={Boolean(errors?.username?.message)} />
+                    <FormError message={errors?.username?.message} />
                     <Input ref={register({
                         required: "Password is required."
-                    })} name="password" type="password" placeholder="Password" />
-                    <Button type="submit" value="Log in" disabled={!formState.isValid} />
-                    {/* form이 유효하지 않은 상태일 때 버튼 비활성화 */}
+                    })} onChange={clearLoginError} name="password" type="password" placeholder="Password" hasError={Boolean(errors?.password?.message)} />
+                    <FormError message={errors?.password?.message} />
+                    <Button type="submit" value={loading ? "Loading..." : "Log in"} disabled={!formState.isValid || loading} />
+                    <FormError message={errors?.result?.message} />
                 </form>
                 <Separator />
                 <FacebookLogin>

@@ -4,12 +4,12 @@ import { BaseBox } from "../shared";
 import { PropTypes } from "prop-types";
 
 const SBottomBox = styled(BaseBox)`
-    padding: 10px 0px;
+    padding: 20px 0px;
     text-align: center;
     a {
         font-weight: 600;
-        color: ${props => props.theme.accent};
         margin-left: 5px;
+        color: ${props => props.theme.accent};
     }
 `;
 
@@ -23,10 +23,11 @@ function BottomBox({ cta, link, linkText }) {
     )
 }
 
+
 BottomBox.propTypes = {
     cta: PropTypes.string.isRequired,
     link: PropTypes.string.isRequired,
-    linkText: PropTypes.string.isRequired
-}
+    linkText: PropTypes.string.isRequired,
+};
 
 export default BottomBox;
