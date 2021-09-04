@@ -5,6 +5,7 @@ import styled from "styled-components";
 import { logUserOut } from "../apollo";
 import Avatar from "../components/Avatar";
 import { FatText } from "../components/shared";
+import { faHeart as SolidHeart } from "@fortawesome/free-solid-svg-icons";
 
 const FEED_QUERY = gql`
     query seeFeed {
@@ -88,7 +89,10 @@ function Home() {
                         <PhotoActions>
                             <div>
                                 <PhotoAction>
-                                    <FontAwesomeIcon size={"2x"} icon={faHeart} />
+                                    <FontAwesomeIcon
+                                        size={"2x"}
+                                        style={{ color: photo.isLiked ? "tomato" : "inherit" }}
+                                        icon={photo.isLiked ? SolidHeart : faHeart} />
                                 </PhotoAction>
                                 <PhotoAction>
                                     <FontAwesomeIcon size={"2x"} icon={faComment} />
