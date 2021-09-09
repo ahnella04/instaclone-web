@@ -6,6 +6,7 @@ import { FatText } from "../shared";
 import Avatar from "../Avatar";
 import { faHeart as SolidHeart } from "@fortawesome/free-solid-svg-icons";
 import { gql, useMutation } from "@apollo/client";
+import Comments from "./Comments";
 
 const TOGGLE_LIKE_MUTATION = gql`
     mutation toggleLike($id: Int!) {
@@ -65,7 +66,8 @@ const Likes = styled(FatText)`
     display: block;
 `;
 
-function Photo({ id, user, file, isLiked, likes }) {
+
+function Photo({ id, user, file, isLiked, likes, caption, commentNumber, comments }) {
     const updateToggleLike = (cache, result) => {
         // console.log(data, cache);
         const {
@@ -76,30 +78,21 @@ function Photo({ id, user, file, isLiked, likes }) {
             }
         } = result;
         if (ok) {
-            const fragmentId = `Photo:${id}`;
-            const fragment = gql`
-                fragment BSName on Photo {
-                        isLiked
-                        likes
+            const photoId = `Photo:${id}`;
+            cache.modify({
+                id: photoId,
+                fields: {
+                    isLiked(prev) {
+                        return !prev;
+                    },
+                    likes(prev) {
+                        if (isLiked) {
+                            return prev - 1;
+                        }
+                        return prev + 1; 
                     }
-            `;
-            const result = cache.readFragment({
-                id: fragmentId,
-                fragment
+                }
             })
-            if ("isLiked" in result && "likes" in result) {
-                // console.log("We got what we want")
-                const { isLiked: cacheIsLiked, likes: cacheLikes } = result;
-                cache.writeFragment({
-                    id: fragmentId,
-                    fragment,
-                    data: {
-                        isLiked: !cacheIsLiked,
-                        likes: cacheIsLiked ? cacheLikes - 1 : cacheLikes + 1
-                    }
-                })
-            }
-            // console.log(result);
         }
     }
     const [toggleLikeMutation] = useMutation(TOGGLE_LIKE_MUTATION, {
@@ -136,6 +129,7 @@ function Photo({ id, user, file, isLiked, likes }) {
                     </div>
                 </PhotoActions>
                 <Likes>{likes === 1 ? "1like" : `${likes} likes`}</Likes>
+                <Comments photoId={id} author={user.username} caption={caption} commentNumber={commentNumber} comments={comments} />
             </PhotoData>
         </PhotoContainer>
     )
@@ -147,9 +141,21 @@ Photo.propTypes = {
         avatar: PropTypes.string,
         username: PropTypes.string.isRequired
     }),
+    caption: PropTypes.string,
     file: PropTypes.string.isRequired,
     isLiked: PropTypes.bool.isRequired,
-    likes: PropTypes.number.isRequired
+    likes: PropTypes.number.isRequired,
+    commentNumber: PropTypes.number.isRequired,
+    comments: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.number.isRequired,
+        user: PropTypes.shape({
+            avatar: PropTypes.string,
+            username: PropTypes.string.isRequired
+        }),
+        payload: PropTypes.string.isRequired,
+        isMine: PropTypes.bool.isRequired,
+        createdAt: PropTypes.string.isRequired,
+    }))
 }
 
 export default Photo;
