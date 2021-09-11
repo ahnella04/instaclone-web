@@ -46,7 +46,7 @@ function Comments({ photoId, author, caption, commentNumber, comments }) {
     const { data: userData } = useUser();
     const { register, handleSubmit, setValue, getValues } = useForm();
     const createCommentUpdate = (cache, result) => {
-        const payload = getValues();
+        const { payload } = getValues();
         setValue("payload", "");
         const { data: { createComment: { ok, id }}} = result;
         if (ok && userData?.me) {
@@ -60,12 +60,27 @@ function Comments({ photoId, author, caption, commentNumber, comments }) {
                     ...userData.me
                 }
             }
-            // console.log(newComment)
+            const newCacheComment = cache.writeFragment({
+                data: newComment,
+                fragment: gql`
+                    fragment BSName on Comment {
+                        id
+                        createdAt
+                        isMine
+                        payload
+                        user {
+                            username
+                            avatar
+                        }
+                    }
+                `
+            })
+            // console.log(newCacheComment)
             cache.modify({
-                id: `PhotoId:${photoId}`,
+                id: `Photo:${photoId}`,
                 fields: {
                     comments(prev) {
-                        return [...prev, newComment];
+                        return [...prev, newCacheComment];
                     },
                     commentNumber(prev) {
                         return prev + 1;
@@ -101,11 +116,11 @@ function Comments({ photoId, author, caption, commentNumber, comments }) {
                 {commentNumber === 1 ? "1 comment" : `${commentNumber} comments`}
             </CommentCount>
             {comments?.map(comment => (
-                <Comment key={comment.id} author={comment.user.username} payload={comment.payload} />
+                <Comment key={comment.id} id={comment.id} photoId={photoId} author={comment.user.username} payload={comment.payload} isMine={comment.isMine} />
             ))}
             <PostCommentContainer>
                 <form onSubmit={handleSubmit(onValid)}>
-                    <PostCommentInput name="payload" {...register("payload", { required: true })} type="text" placeholder="Write a comment..." />
+                    <PostCommentInput name="payload" ref={register({ required: true })} type="text" placeholder="Write a comment..." />
                 </form>
             </PostCommentContainer>
         </CommentsContainer>
@@ -116,7 +131,6 @@ Comments.propTypes = {
     photoId: PropTypes.number.isRequired,
     author: PropTypes.string.isRequired,
     caption: PropTypes.string,
-    commentNumber: PropTypes.number.isRequired,
     commentNumber: PropTypes.number.isRequired,
     comments: PropTypes.arrayOf(PropTypes.shape({
         id: PropTypes.number.isRequired,

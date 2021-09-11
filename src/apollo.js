@@ -42,7 +42,13 @@ const authLink = setContext((_, { headers }) => {
 
 export const client = new ApolloClient({
     link: authLink.concat(httpLink),
-    cache: new InMemoryCache(),
+    cache: new InMemoryCache({
+        typePolicies: {
+            User: {
+                keyFields: (obj) => `User:${obj.username}`
+            }
+        }
+    }),
 });
 // Cache는 Apollo가 한 번 가져온 정보를 기억하게 해서 매번 같은 정보를 가져오지 않도록 함
 // Apollo는 local 환경에 정보를 저장해 놓는데 이게 홈페이지를 수정할 때마다 매번 정보를 가져오는 것을 막아줌
